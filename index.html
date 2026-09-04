@@ -17,16 +17,26 @@
         }
 
         body::before {
-            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background-image:
                 linear-gradient(165deg, rgba(12,12,20,0.82) 0%, rgba(18,18,28,0.88) 45%, rgba(14,16,24,0.92) 100%),
                 url("https://i.imgur.com/6fO2gRG.jpeg");
-            background-size: cover; background-position: center; background-repeat: no-repeat;
-            pointer-events: none; z-index: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .app-container {
-            max-width: 440px; margin: 0 auto; padding: 28px 18px 40px; position: relative; z-index: 1;
+            max-width: 440px;
+            margin: 0 auto;
+            padding: 28px 18px 40px;
+            position: relative;
+            z-index: 1;
         }
 
         /* 🔘 ボタン感触 */
@@ -51,10 +61,20 @@
         /* ヘッダー */
         .header { text-align: center; padding: 18px 0 8px; }
         .header .mark { font-size: 34px; margin-bottom: 14px; opacity: 0.95; }
-        .header h1 { font-size: 15px; font-weight: 500; color: #c4a86e; letter-spacing: 0.45em; margin-bottom: 10px; }
-        .header .shop-name { font-size: 22px; font-weight: 600; color: #f0e6d4; letter-spacing: 0.2em; }
+        .header h1 { font-size: 14px; font-weight: 500; color: #c4a86e; letter-spacing: 0.45em; margin-bottom: 8px; }
+        
+        /* 🍶 大きく強調された店名 */
+        .header .shop-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff8ec;
+            letter-spacing: 0.25em;
+            margin-top: 12px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+        }
+        
         .sync-status { margin-top: 14px; font-size: 10px; color: #7a7060; letter-spacing: 0.12em; font-family: sans-serif; }
-        .header .divider { width: 40px; height: 1px; background: rgba(196,168,110,0.5); margin: 22px auto 8px; }
+        .header .divider { width: 50px; height: 1px; background: rgba(196,168,110,0.5); margin: 22px auto 8px; }
 
         .screen { display: none; animation: fadeIn 0.55s ease; }
         .screen.active { display: block; }
@@ -75,7 +95,6 @@
         .secondary-btn { display: block; width: 100%; padding: 14px; background: rgba(0,0,0,0.45); border: 1px solid rgba(196,168,110,0.28); border-radius: 2px; color: #c4a86e; font-size: 12px; font-family: inherit; letter-spacing: 0.15em; cursor: pointer; margin-top: 10px; }
         .secondary-btn:active { transform: translateY(2px) scale(0.98); background: rgba(196,168,110,0.15); border-color: rgba(196,168,110,0.45); }
         
-        /* リスト追加ボタン（少し目立たせる） */
         .add-list-btn { background: linear-gradient(135deg, #2b2520, #1c1814); border: 1px solid #c4a86e; color: #c4a86e; }
         .add-list-btn.saved { background: #c4a86e; color: #1a1814; border: none; }
 
@@ -83,7 +102,7 @@
         .back-btn:active { transform: translateX(-3px); color: #c4a86e; }
         .footer { text-align: center; padding: 36px 0 12px; font-size: 10px; color: #5a5045; letter-spacing: 0.08em; line-height: 1.8; }
 
-        /* 診断・ローディング・結果・カード関連は前回と同じため省略気味に記載しますが適用します */
+        /* 診断系 */
         .progress-bar { width: 100%; height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 28px; overflow: hidden; }
         .progress-fill { height: 100%; background: #c4a86e; transition: width 0.5s ease; }
         .question-number { text-align: center; font-size: 10px; color: #7a7060; letter-spacing: 0.25em; margin-bottom: 18px; font-family: sans-serif; }
@@ -149,8 +168,6 @@
         .toast.active { display: block; animation: fadeIn 0.35s ease; }
 
         .empty-msg { text-align: center; color: #7a7060; font-size: 12px; padding: 40px 10px; letter-spacing: 0.08em; line-height: 1.8; }
-        
-        /* 削除ボタン（リスト用） */
         .remove-btn { color: #a06060; font-size: 11px; border: 1px solid #a06060; padding: 4px 8px; background: transparent; cursor: pointer; border-radius: 2px; }
     </style>
 </head>
@@ -240,7 +257,7 @@
         <div id="fullMenuContent"></div>
     </div>
     
-    <!-- ⭐ マイリスト -->
+    <!-- マイリスト -->
     <div class="screen" id="myListScreen">
         <div class="back-btn clickable" onclick="goToStart()">← 戻る</div>
         <h2 class="section-title">飲みたいリスト</h2>
@@ -291,7 +308,6 @@
 </div>
 
 <script>
-// 📳 スマホの微振動ハプティクス
 function haptic() {
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch(e) {} }
 }
@@ -303,8 +319,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbz8pmuULlTU5ip-2jkl7CFI
 
 let sakeDatabase = [];
 let reviewDatabase = [];
-
-// ⭐ お気に入り（飲みたいリスト）のデータを端末から読み込む
 let mySavedList = JSON.parse(localStorage.getItem('itowokashi_mylist')) || [];
 
 async function loadData() {
@@ -408,7 +422,6 @@ function createSakeCard(sake, isMyList = false) {
         rating = `<span class="rec-rating">★ ${avg.toFixed(1)}（${list.length}）</span>`;
     }
     
-    // リスト画面用の削除ボタン
     const removeHtml = isMyList ? `<button class="remove-btn clickable" onclick="event.stopPropagation(); toggleMyList('${sake.id}'); showMyList();">リストから外す</button>` : '';
 
     return `
@@ -452,17 +465,15 @@ function showMyList() {
     showScreen('myListScreen');
 }
 
-// ⭐ リスト追加・削除機能
 function toggleMyList(sakeId) {
     haptic();
     if (mySavedList.includes(sakeId)) {
-        mySavedList = mySavedList.filter(id => id !== sakeId); // 削除
+        mySavedList = mySavedList.filter(id => id !== sakeId);
         showToast('リストから外しました');
     } else {
-        mySavedList.push(sakeId); // 追加
+        mySavedList.push(sakeId);
         showToast('飲みたいリストに追加しました！⭐');
     }
-    // スマホ端末に保存
     localStorage.setItem('itowokashi_mylist', JSON.stringify(mySavedList));
 }
 
@@ -495,7 +506,6 @@ function showDetail(sakeId) {
         <div class="detail-desc">${sake.description || ''}</div>
         <div class="detail-price">${sake.price || ''}</div>
         
-        <!-- 追加されたリスト機能ボタン -->
         <button class="${btnClass}" id="addListBtn" onclick="toggleMyList('${sake.id}'); showDetail('${sake.id}');">${btnText}</button>
         
         <button class="secondary-btn clickable" style="margin-top:16px;" onclick="haptic(); alert('店員にお声がけください。');">注文は店員へお声がけください</button>
