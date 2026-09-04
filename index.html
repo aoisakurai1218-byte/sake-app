@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本酒診断 - いと。をかし</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+            background-color: #0c0c14;
+            min-height: 100vh;
+            color: #e6dcc8;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image:
+                linear-gradient(165deg, rgba(12,12,20,0.82) 0%, rgba(18,18,28,0.88) 45%, rgba(14,16,24,0.92) 100%),
+                url("https://i.imgur.com/6fO2gRG.jpeg");
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            pointer-events: none; z-index: 0;
+        }
+
+        .app-container {
+            max-width: 440px; margin: 0 auto; padding: 28px 18px 40px; position: relative; z-index: 1;
+        }
+
+        /* 🔘 ボタン感触 */
+        .clickable {
+            transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.12s cubic-bezier(0.2, 0, 0, 1), background-color 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
+            will-change: transform, box-shadow; user-select: none;
+        }
+
+        /* 年齢確認 */
+        .age-overlay { position: fixed; inset: 0; background: rgba(10,10,16,0.97); z-index: 500; display: flex; justify-content: center; align-items: center; }
+        .age-overlay.hidden { display: none; }
+        .age-box { text-align: center; padding: 42px 28px; background: rgba(20,18,28,0.95); border: 1px solid rgba(196,168,110,0.28); border-radius: 4px; max-width: 320px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .age-mark { font-size: 36px; margin-bottom: 18px; opacity: 0.9; }
+        .age-box h2 { font-size: 18px; font-weight: 500; color: #c4a86e; letter-spacing: 0.35em; margin-bottom: 16px; }
+        .age-box p { font-size: 13px; color: #a89a86; line-height: 2; margin-bottom: 28px; }
+        .age-buttons { display: flex; gap: 12px; justify-content: center; }
+        .age-yes { padding: 12px 28px; background: #c4a86e; border: none; border-radius: 2px; color: #1a1814; font-size: 13px; font-family: inherit; letter-spacing: 0.15em; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .age-yes:active { transform: translateY(2px) scale(0.96); box-shadow: 0 1px 4px rgba(0,0,0,0.5); filter: brightness(0.9); }
+        .age-no { padding: 12px 28px; background: transparent; border: 1px solid rgba(196,168,110,0.3); border-radius: 2px; color: #8a7d6b; font-size: 13px; font-family: inherit; letter-spacing: 0.15em; cursor: pointer; }
+        .age-no:active { transform: translateY(2px) scale(0.96); background: rgba(196,168,110,0.1); }
+
+        /* ヘッダー */
+        .header { text-align: center; padding: 18px 0 8px; }
+        .header .mark { font-size: 34px; margin-bottom: 14px; opacity: 0.95; }
+        .header h1 { font-size: 15px; font-weight: 500; color: #c4a86e; letter-spacing: 0.45em; margin-bottom: 10px; }
+        .header .shop-name { font-size: 22px; font-weight: 600; color: #f0e6d4; letter-spacing: 0.2em; }
+        .sync-status { margin-top: 14px; font-size: 10px; color: #7a7060; letter-spacing: 0.12em; font-family: sans-serif; }
+        .header .divider { width: 40px; height: 1px; background: rgba(196,168,110,0.5); margin: 22px auto 8px; }
+
+        .screen { display: none; animation: fadeIn 0.55s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+        .start-lead { text-align: center; font-size: 13px; color: #a89a86; line-height: 2.1; margin: 10px 0 28px; letter-spacing: 0.08em; }
+
+        /* メニューボタン */
+        .menu-buttons { display: flex; flex-direction: column; gap: 12px; }
+        .menu-btn { width: 100%; background: rgba(12,12,18,0.65); border: 1px solid rgba(196,168,110,0.22); border-radius: 2px; padding: 22px 20px; cursor: pointer; text-align: left; backdrop-filter: blur(6px); font-family: inherit; color: inherit; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .menu-btn:active { transform: translateY(3px) scale(0.98); background: rgba(196,168,110,0.16); border-color: rgba(196,168,110,0.55); box-shadow: 0 1px 5px rgba(0,0,0,0.5); }
+        .menu-btn .label { display: block; font-size: 15px; color: #e8dcc4; letter-spacing: 0.18em; margin-bottom: 8px; font-weight: 500; }
+        .menu-btn .desc { display: block; font-size: 11px; color: #8a7d6b; line-height: 1.7; letter-spacing: 0.06em; }
+
+        /* 共通ボタン */
+        .primary-btn { display: block; width: 100%; padding: 16px; background: #c4a86e; border: none; border-radius: 2px; color: #1a1814; font-size: 13px; font-family: inherit; font-weight: 600; letter-spacing: 0.2em; cursor: pointer; margin-top: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
+        .primary-btn:active { transform: translateY(2px) scale(0.975); box-shadow: 0 1px 4px rgba(0,0,0,0.6); filter: brightness(0.92); }
+        .secondary-btn { display: block; width: 100%; padding: 14px; background: rgba(0,0,0,0.45); border: 1px solid rgba(196,168,110,0.28); border-radius: 2px; color: #c4a86e; font-size: 12px; font-family: inherit; letter-spacing: 0.15em; cursor: pointer; margin-top: 10px; }
+        .secondary-btn:active { transform: translateY(2px) scale(0.98); background: rgba(196,168,110,0.15); border-color: rgba(196,168,110,0.45); }
+        
+        /* リスト追加ボタン（少し目立たせる） */
+        .add-list-btn { background: linear-gradient(135deg, #2b2520, #1c1814); border: 1px solid #c4a86e; color: #c4a86e; }
+        .add-list-btn.saved { background: #c4a86e; color: #1a1814; border: none; }
+
+        .back-btn { display: inline-block; color: #8a7d6b; font-size: 12px; cursor: pointer; margin-bottom: 22px; letter-spacing: 0.1em; padding: 6px 12px 6px 0; }
+        .back-btn:active { transform: translateX(-3px); color: #c4a86e; }
+        .footer { text-align: center; padding: 36px 0 12px; font-size: 10px; color: #5a5045; letter-spacing: 0.08em; line-height: 1.8; }
+
+        /* 診断・ローディング・結果・カード関連は前回と同じため省略気味に記載しますが適用します */
+        .progress-bar { width: 100%; height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 28px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #c4a86e; transition: width 0.5s ease; }
+        .question-number { text-align: center; font-size: 10px; color: #7a7060; letter-spacing: 0.25em; margin-bottom: 18px; font-family: sans-serif; }
+        .question-text { text-align: center; font-size: 20px; color: #f0e6d4; margin-bottom: 10px; font-weight: 500; letter-spacing: 0.12em; line-height: 1.6; }
+        .question-sub { text-align: center; font-size: 11px; color: #8a7d6b; margin-bottom: 32px; letter-spacing: 0.08em; }
+        .options { display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { background: rgba(0,0,0,0.45); border: 1px solid rgba(196,168,110,0.22); border-radius: 2px; padding: 18px 16px; cursor: pointer; text-align: left; font-family: inherit; color: inherit; width: 100%; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
+        .option-btn:active { transform: translateY(2px) scale(0.98); background: rgba(196,168,110,0.18); border-color: rgba(196,168,110,0.55); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+        .option-btn.selected { background: rgba(196,168,110,0.2); border-color: #c4a86e; }
+        .option-btn .opt-text { font-size: 14px; color: #e8dcc4; letter-spacing: 0.1em; margin-bottom: 4px; }
+        .option-btn .opt-desc { font-size: 11px; color: #7a7060; letter-spacing: 0.05em; }
+
+        .loading-screen { text-align: center; padding: 90px 0; }
+        .loading-mark { font-size: 42px; margin-bottom: 28px; opacity: 0.85; animation: softPulse 2s ease-in-out infinite; }
+        @keyframes softPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+        .loading-text { font-size: 13px; color: #a89a86; letter-spacing: 0.18em; line-height: 2; }
+
+        .result-card { background: rgba(12,12,18,0.78); border: 1px solid rgba(196,168,110,0.35); border-radius: 2px; padding: 36px 22px; margin-bottom: 16px; text-align: center; backdrop-filter: blur(8px); box-shadow: 0 12px 30px rgba(0,0,0,0.45); }
+        .result-rank { font-size: 11px; color: #c4a86e; letter-spacing: 0.35em; margin-bottom: 20px; }
+        .result-sake-name { font-size: 26px; color: #fff8ec; font-weight: 600; letter-spacing: 0.08em; line-height: 1.45; margin-bottom: 10px; }
+        .result-brewery { font-size: 12px; color: #8a7d6b; margin-bottom: 22px; letter-spacing: 0.06em; }
+        .result-desc { font-size: 13px; color: #c8bca8; line-height: 1.95; background: rgba(0,0,0,0.3); padding: 18px 16px; border-radius: 2px; margin-bottom: 22px; border: 1px solid rgba(196,168,110,0.15); text-align: left; }
+        .result-price { font-size: 22px; color: #c4a86e; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+        .section-title { text-align: center; font-size: 16px; color: #c4a86e; letter-spacing: 0.3em; margin-bottom: 22px; font-weight: 500; }
+        .recommend-card { background: rgba(0,0,0,0.48); border: 1px solid rgba(196,168,110,0.2); border-radius: 2px; padding: 20px 18px; margin-bottom: 12px; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+        .recommend-card:active { transform: translateY(2px) scale(0.985); border-color: rgba(196,168,110,0.45); background: rgba(196,168,110,0.12); box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+        .rec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+        .rec-name { font-size: 16px; color: #f0e6d4; font-weight: 500; letter-spacing: 0.06em; line-height: 1.4; }
+        .rec-type { font-size: 11px; color: #7a7060; margin-top: 6px; letter-spacing: 0.04em; }
+        .rec-badge { flex-shrink: 0; border: 1px solid rgba(196,168,110,0.4); color: #c4a86e; font-size: 10px; letter-spacing: 0.12em; padding: 4px 8px; }
+        .rec-price { font-size: 14px; color: #c4a86e; letter-spacing: 0.06em; }
+        .rec-rating { font-size: 11px; color: #a89a86; margin-left: 10px; font-family: sans-serif; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 100; justify-content: center; align-items: flex-end; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: linear-gradient(180deg, #1c1a24, #121018); border-radius: 8px 8px 0 0; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 18px 22px 36px; border-top: 1px solid rgba(196,168,110,0.3); box-shadow: 0 -10px 30px rgba(0,0,0,0.6); }
+        .modal-close-bar { width: 36px; height: 3px; background: rgba(196,168,110,0.35); border-radius: 2px; margin: 0 auto 22px; cursor: pointer; }
+
+        .detail-name { font-size: 24px; color: #fff8ec; text-align: center; font-weight: 600; letter-spacing: 0.08em; line-height: 1.4; margin-bottom: 10px; }
+        .detail-brewery { text-align: center; font-size: 12px; color: #8a7d6b; margin-bottom: 20px; }
+        .detail-desc { font-size: 13px; color: #c8bca8; line-height: 1.9; background: rgba(0,0,0,0.35); padding: 16px; border: 1px solid rgba(196,168,110,0.15); margin-bottom: 18px; }
+        .detail-price { text-align: center; font-size: 22px; color: #c4a86e; margin-bottom: 18px; letter-spacing: 0.08em; }
+
+        .review-section { margin-top: 28px; padding-top: 22px; border-top: 1px solid rgba(196,168,110,0.18); }
+        .review-title { text-align: center; font-size: 12px; color: #c4a86e; letter-spacing: 0.3em; margin-bottom: 16px; }
+        .review-card { background: rgba(0,0,0,0.35); border: 1px solid rgba(196,168,110,0.12); padding: 14px; margin-bottom: 10px; }
+        .review-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; }
+        .review-name { color: #d4c4a8; letter-spacing: 0.06em; }
+        .review-date { color: #6a6055; font-family: sans-serif; }
+        .review-stars { color: #c4a86e; font-size: 12px; letter-spacing: 0.15em; margin-bottom: 8px; font-family: sans-serif; }
+        .review-comment { font-size: 13px; color: #b8ac98; line-height: 1.7; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 11px; color: #8a7d6b; letter-spacing: 0.12em; margin-bottom: 8px; }
+        .form-input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(196,168,110,0.28); border-radius: 2px; padding: 12px 14px; color: #e6dcc8; font-size: 14px; font-family: inherit; }
+        .form-input:focus { outline: none; border-color: rgba(196,168,110,0.6); background: rgba(0,0,0,0.7); }
+        .star-select { font-size: 26px; color: rgba(255,255,255,0.15); cursor: pointer; display: inline-block; margin: 0 3px; font-family: sans-serif; transition: color 0.15s, transform 0.12s; }
+        .star-select:active { transform: scale(1.25); }
+        .star-select.active { color: #c4a86e; }
+
+        .toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); background: #c4a86e; color: #1a1814; padding: 12px 22px; border-radius: 2px; font-size: 12px; letter-spacing: 0.08em; display: none; z-index: 300; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+        .toast.active { display: block; animation: fadeIn 0.35s ease; }
+
+        .empty-msg { text-align: center; color: #7a7060; font-size: 12px; padding: 40px 10px; letter-spacing: 0.08em; line-height: 1.8; }
+        
+        /* 削除ボタン（リスト用） */
+        .remove-btn { color: #a06060; font-size: 11px; border: 1px solid #a06060; padding: 4px 8px; background: transparent; cursor: pointer; border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="age-overlay" id="ageOverlay">
+    <div class="age-box">
+        <div class="age-mark">🍶</div>
+        <h2>年齢確認</h2>
+        <p>いと。をかし のお酒メニューです。<br>あなたは20歳以上ですか？</p>
+        <div class="age-buttons">
+            <button class="age-yes clickable" onclick="confirmAge()">はい</button>
+            <button class="age-no clickable" onclick="denyAge()">いいえ</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toastMessage"></div>
+
+<div class="app-container">
+    <div class="header">
+        <div class="mark">🍶</div>
+        <h1>日本酒診断</h1>
+        <div class="shop-name">いと。をかし</div>
+        <div class="sync-status" id="syncStatus">データを読み込んでいます…</div>
+        <div class="divider"></div>
+    </div>
+
+    <!-- スタート -->
+    <div class="screen active" id="startScreen">
+        <p class="start-lead">あなたの好みに寄り添う<br>一杯をお選びします</p>
+        <div class="menu-buttons">
+            <button class="menu-btn clickable" onclick="startDiagnosis()">
+                <span class="label">好み診断</span>
+                <span class="desc">五つの問いから、あなたに合う日本酒を</span>
+            </button>
+            <button class="menu-btn clickable" onclick="showShopRecommends()">
+                <span class="label">本日のおすすめ</span>
+                <span class="desc">店主が選んだ、今日の逸品</span>
+            </button>
+            <button class="menu-btn clickable" onclick="showFullMenu()">
+                <span class="label">日本酒メニュー</span>
+                <span class="desc">全銘柄と、お客様の感想</span>
+            </button>
+            <button class="menu-btn clickable" onclick="showMyList()">
+                <span class="label" style="color: #f0e6d4;">⭐ 飲みたいリスト</span>
+                <span class="desc">あなたが気になったお酒の記録</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 診断 -->
+    <div class="screen" id="diagnosisScreen">
+        <div class="back-btn clickable" onclick="goToStart()">← 戻る</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:20%"></div></div>
+        <div class="question-number">QUESTION <span id="qNum">1</span> / 5</div>
+        <div class="question-text" id="questionText"></div>
+        <div class="question-sub" id="questionSub"></div>
+        <div class="options" id="optionsContainer"></div>
+    </div>
+
+    <!-- ローディング -->
+    <div class="screen" id="loadingScreen">
+        <div class="loading-screen">
+            <div class="loading-mark">🍶</div>
+            <div class="loading-text">あなたに合う一杯を<br>静かに選んでいます…</div>
+        </div>
+    </div>
+
+    <!-- 結果 -->
+    <div class="screen" id="resultScreen">
+        <div class="back-btn clickable" onclick="goToStart()">← メニューに戻る</div>
+        <div id="resultContent"></div>
+    </div>
+
+    <!-- おすすめ -->
+    <div class="screen" id="shopRecommendScreen">
+        <div class="back-btn clickable" onclick="goToStart()">← 戻る</div>
+        <h2 class="section-title">本日のおすすめ</h2>
+        <div id="shopRecommendContent"></div>
+    </div>
+
+    <!-- 全メニュー -->
+    <div class="screen" id="fullMenuScreen">
+        <div class="back-btn clickable" onclick="goToStart()">← 戻る</div>
+        <h2 class="section-title">全メニュー</h2>
+        <div id="fullMenuContent"></div>
+    </div>
+    
+    <!-- ⭐ マイリスト -->
+    <div class="screen" id="myListScreen">
+        <div class="back-btn clickable" onclick="goToStart()">← 戻る</div>
+        <h2 class="section-title">飲みたいリスト</h2>
+        <div id="myListContent"></div>
+    </div>
+
+    <div class="footer">
+        いと。をかし<br>
+        お酒は二十歳になってから。飲みすぎに注意しましょう。
+    </div>
+</div>
+
+<!-- 詳細 -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+        <div class="modal-close-bar" onclick="closeModal('detailModal')"></div>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<!-- レビュー投稿 -->
+<div class="modal-overlay" id="reviewModal">
+    <div class="modal-content">
+        <div class="modal-close-bar" onclick="closeModal('reviewModal')"></div>
+        <h2 class="section-title" style="margin-bottom:24px;">感想を書く</h2>
+        <input type="hidden" id="reviewSakeId">
+        <div class="form-group" style="text-align:center;">
+            <label class="form-label" style="text-align:center;">おすすめ度</label>
+            <div id="starContainer" style="margin: 8px 0 4px;">
+                <span class="star-select active" onclick="setRating(1)">★</span>
+                <span class="star-select active" onclick="setRating(2)">★</span>
+                <span class="star-select active" onclick="setRating(3)">★</span>
+                <span class="star-select active" onclick="setRating(4)">★</span>
+                <span class="star-select active" onclick="setRating(5)">★</span>
+            </div>
+            <input type="hidden" id="reviewRating" value="5">
+        </div>
+        <div class="form-group">
+            <label class="form-label">お名前（任意）</label>
+            <input type="text" id="reviewName" class="form-input" placeholder="例：常連の客">
+        </div>
+        <div class="form-group">
+            <label class="form-label">感想</label>
+            <textarea id="reviewComment" class="form-input" rows="4" placeholder="香り、飲み口、料理との相性など"></textarea>
+        </div>
+        <button class="primary-btn clickable" id="submitReviewBtn" onclick="submitReview()">送信する</button>
+    </div>
+</div>
+
+<script>
+// 📳 スマホの微振動ハプティクス
+function haptic() {
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch(e) {} }
+}
+
+function confirmAge() { haptic(); document.getElementById('ageOverlay').classList.add('hidden'); }
+function denyAge() { haptic(); document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0c0c14;color:#8a7d6b;font-family:serif;font-size:14px;text-align:center;padding:24px;line-height:2;letter-spacing:0.08em;">20歳未満の方はご利用いただけません。<br><br>─ いと。をかし ─</div>'; }
+
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz8pmuULlTU5ip-2jkl7CFIiDhMwrLTey5q-9VZeLaPK0pBGNGpOTUArljTShhh-vmagA/exec';
+
+let sakeDatabase = [];
+let reviewDatabase = [];
+
+// ⭐ お気に入り（飲みたいリスト）のデータを端末から読み込む
+let mySavedList = JSON.parse(localStorage.getItem('itowokashi_mylist')) || [];
+
+async function loadData() {
+    try {
+        const response = await fetch(GAS_URL);
+        const data = await response.json();
+        sakeDatabase = data.sakes || [];
+        reviewDatabase = data.reviews || [];
+        document.getElementById('syncStatus').textContent = 'データ読込完了';
+        document.getElementById('syncStatus').style.color = '#7a9a6a';
+    } catch (e) {
+        document.getElementById('syncStatus').textContent = '読込エラー';
+        document.getElementById('syncStatus').style.color = '#a06060';
+    }
+}
+window.addEventListener('DOMContentLoaded', loadData);
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function goToStart() { haptic(); showScreen('startScreen'); }
+function closeModal(id) { haptic(); document.getElementById(id).classList.remove('active'); }
+
+const questions = [
+    { text: '今日の気分は？', sub: '直感でお選びください', options: [{ text: '華やかに楽しみたい', desc: '特別な気分', values: { fruity: 3, light: 1 } }, { text: 'しっとり落ち着きたい', desc: 'リラックス', values: { rich: 2, warm: 2 } }, { text: '料理と一緒に', desc: '食事を主に', values: { dry: 1, rich: 1, light: 1 } }, { text: '日本酒をはじめたい', desc: '初めての方へ', values: { fruity: 2, light: 2 } }] },
+    { text: '普段の飲み物は？', sub: 'お酒以外でも構いません', options: [{ text: 'フルーツ系の飲み物', desc: '甘く華やか', values: { fruity: 3 } }, { text: 'ビール・ハイボール', desc: '爽快でキレがある', values: { dry: 3 } }, { text: 'ワイン', desc: '深みのある味わい', values: { rich: 2, fruity: 1 } }, { text: 'お茶・水', desc: 'すっきりシンプル', values: { light: 3 } }] },
+    { text: '味の好みは？', sub: '日頃の食事の感覚で', options: [{ text: '甘めが好き', desc: 'まろやか寄り', values: { fruity: 2, light: 1 } }, { text: '塩味・辛味が好き', desc: 'キレのある味', values: { dry: 3 } }, { text: 'こってり濃い味', desc: 'しっかりした旨み', values: { rich: 3 } }, { text: 'あっさり薄味', desc: '淡麗で軽い', values: { light: 2, dry: 1 } }] },
+    { text: '飲み方の温度は？', sub: '温度で表情が変わります', options: [{ text: 'よく冷やして', desc: '冷酒', values: { fruity: 1, light: 1, dry: 1 } }, { text: '常温で', desc: '冷や', values: { rich: 1, dry: 1 } }, { text: '温めて', desc: 'ぬる燗〜熱燗', values: { warm: 3, rich: 1 } }, { text: 'おまかせ', desc: '店にお任せ', values: { fruity: 1, dry: 1, rich: 1 } }] },
+    { text: '合わせたい料理は？', sub: '今日のおつまみを想像して', options: [{ text: '刺身・寿司', desc: '新鮮な魚介', values: { light: 2, fruity: 1 } }, { text: '焼き鳥・肉料理', desc: '香ばしい一品', values: { rich: 1, dry: 1, warm: 1 } }, { text: '鍋・煮物', desc: 'あたたかい料理', values: { warm: 2, rich: 1 } }, { text: 'チーズ・洋食', desc: 'ワイン感覚で', values: { fruity: 2, light: 1 } }] }
+];
+
+let currentQuestion = 0;
+let userScores = { fruity: 0, dry: 0, rich: 0, light: 0, warm: 0 };
+
+function startDiagnosis() {
+    haptic();
+    if (sakeDatabase.length === 0) { alert('データを読み込み中です。少々お待ちください。'); return; }
+    currentQuestion = 0;
+    userScores = { fruity: 0, dry: 0, rich: 0, light: 0, warm: 0 };
+    showScreen('diagnosisScreen');
+    renderQuestion();
+}
+
+function renderQuestion() {
+    const q = questions[currentQuestion];
+    document.getElementById('qNum').textContent = currentQuestion + 1;
+    document.getElementById('progressFill').style.width = ((currentQuestion + 1) / 5 * 100) + '%';
+    document.getElementById('questionText').textContent = q.text;
+    document.getElementById('questionSub').textContent = q.sub;
+    document.getElementById('optionsContainer').innerHTML = q.options.map((opt, i) => `
+        <button class="option-btn clickable" onclick="selectOption(${i})">
+            <div class="opt-text">${opt.text}</div><div class="opt-desc">${opt.desc}</div>
+        </button>
+    `).join('');
+}
+
+function selectOption(index) {
+    haptic();
+    const values = questions[currentQuestion].options[index].values;
+    Object.keys(values).forEach(k => { userScores[k] = (userScores[k] || 0) + values[k]; });
+    document.querySelectorAll('.option-btn')[index].classList.add('selected');
+    setTimeout(() => {
+        currentQuestion++;
+        if (currentQuestion < questions.length) renderQuestion();
+        else { showScreen('loadingScreen'); setTimeout(showResult, 1800); }
+    }, 320);
+}
+
+function showResult() {
+    const scored = sakeDatabase.map(sake => {
+        let matchScore = 0;
+        if (sake.scores) Object.keys(userScores).forEach(k => { if(sake.scores[k]) matchScore += userScores[k] * sake.scores[k]; });
+        return { ...sake, matchScore };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+
+    const top = scored[0];
+    if (!top) { document.getElementById('resultContent').innerHTML = '<p class="empty-msg">診断できる銘柄がありません</p>'; showScreen('resultScreen'); return; }
+
+    document.getElementById('resultContent').innerHTML = `
+        <div class="result-card">
+            <div class="result-rank">あなたへのおすすめ</div>
+            <div class="result-sake-name">${top.name}</div>
+            <div class="result-brewery">${top.brewery || ''}</div>
+            <div class="result-desc">${top.description || ''}</div>
+            <div class="result-price">${top.price || ''}</div>
+            <button class="primary-btn clickable" onclick="showDetail('${top.id}')">詳細・感想を見る</button>
+        </div>
+        <button class="secondary-btn clickable" onclick="startDiagnosis()">もう一度診断する</button>
+        <button class="secondary-btn clickable" onclick="goToStart()">メニューに戻る</button>
+    `;
+    showScreen('resultScreen');
+}
+
+function createSakeCard(sake, isMyList = false) {
+    const list = reviewDatabase.filter(r => r.sakeId === sake.id);
+    let rating = '';
+    if (list.length > 0) {
+        const avg = list.reduce((s, r) => s + Number(r.rating), 0) / list.length;
+        rating = `<span class="rec-rating">★ ${avg.toFixed(1)}（${list.length}）</span>`;
+    }
+    
+    // リスト画面用の削除ボタン
+    const removeHtml = isMyList ? `<button class="remove-btn clickable" onclick="event.stopPropagation(); toggleMyList('${sake.id}'); showMyList();">リストから外す</button>` : '';
+
+    return `
+        <div class="recommend-card clickable" onclick="showDetail('${sake.id}')">
+            <div class="rec-header">
+                <div>
+                    <div class="rec-name">${sake.name}</div>
+                    <div class="rec-type">${sake.brewery || ''}</div>
+                </div>
+                ${!isMyList && sake.isShopRecommend ? '<div class="rec-badge">おすすめ</div>' : ''}
+                ${removeHtml}
+            </div>
+            <div class="rec-price">${sake.price || ''}${rating}</div>
+        </div>
+    `;
+}
+
+function showShopRecommends() {
+    haptic();
+    if (sakeDatabase.length === 0) { alert('データを読み込み中です。少々お待ちください。'); return; }
+    const html = sakeDatabase.filter(s => s.isShopRecommend).map(s => createSakeCard(s)).join('');
+    document.getElementById('shopRecommendContent').innerHTML = html || '<p class="empty-msg">現在おすすめの設定がありません</p>';
+    showScreen('shopRecommendScreen');
+}
+
+function showFullMenu() {
+    haptic();
+    if (sakeDatabase.length === 0) { alert('データを読み込み中です。少々お待ちください。'); return; }
+    document.getElementById('fullMenuContent').innerHTML = sakeDatabase.map(s => createSakeCard(s)).join('');
+    showScreen('fullMenuScreen');
+}
+
+function showMyList() {
+    haptic();
+    if (sakeDatabase.length === 0) { alert('データを読み込み中です。少々お待ちください。'); return; }
+    
+    const savedSakes = sakeDatabase.filter(s => mySavedList.includes(s.id));
+    const html = savedSakes.map(s => createSakeCard(s, true)).join('');
+    
+    document.getElementById('myListContent').innerHTML = html || '<p class="empty-msg">まだリストに登録されたお酒はありません。<br><br>気になったお酒の詳細画面から<br>「飲みたいリストに追加」を押してみましょう。</p>';
+    showScreen('myListScreen');
+}
+
+// ⭐ リスト追加・削除機能
+function toggleMyList(sakeId) {
+    haptic();
+    if (mySavedList.includes(sakeId)) {
+        mySavedList = mySavedList.filter(id => id !== sakeId); // 削除
+        showToast('リストから外しました');
+    } else {
+        mySavedList.push(sakeId); // 追加
+        showToast('飲みたいリストに追加しました！⭐');
+    }
+    // スマホ端末に保存
+    localStorage.setItem('itowokashi_mylist', JSON.stringify(mySavedList));
+}
+
+function showDetail(sakeId) {
+    haptic();
+    const sake = sakeDatabase.find(s => s.id === sakeId);
+    if (!sake) return;
+
+    const isSaved = mySavedList.includes(sake.id);
+    const btnClass = isSaved ? 'primary-btn add-list-btn saved clickable' : 'primary-btn add-list-btn clickable';
+    const btnText = isSaved ? '⭐ リストに保存済み（外す）' : '⭐ 飲みたいリストに追加';
+
+    const list = reviewDatabase.filter(r => r.sakeId === sake.id);
+    let reviewsHtml = list.map(r => `
+        <div class="review-card">
+            <div class="review-header">
+                <span class="review-name">${r.nickname || 'ゲスト'}</span>
+                <span class="review-date">${r.date ? String(r.date).split('T')[0] : ''}</span>
+            </div>
+            <div class="review-stars">${'★'.repeat(Number(r.rating) || 0)}${'☆'.repeat(Math.max(0, 5 - (Number(r.rating) || 0)))}</div>
+            <div class="review-comment">${r.comment || ''}</div>
+        </div>
+    `).join('');
+
+    if (!list.length) { reviewsHtml = '<p class="empty-msg">まだ感想はありません。<br>最初の感想を残してみませんか。</p>'; }
+
+    document.getElementById('modalBody').innerHTML = `
+        <div class="detail-name">${sake.name}</div>
+        <div class="detail-brewery">${sake.brewery || ''}</div>
+        <div class="detail-desc">${sake.description || ''}</div>
+        <div class="detail-price">${sake.price || ''}</div>
+        
+        <!-- 追加されたリスト機能ボタン -->
+        <button class="${btnClass}" id="addListBtn" onclick="toggleMyList('${sake.id}'); showDetail('${sake.id}');">${btnText}</button>
+        
+        <button class="secondary-btn clickable" style="margin-top:16px;" onclick="haptic(); alert('店員にお声がけください。');">注文は店員へお声がけください</button>
+        
+        <div class="review-section">
+            <div class="review-title">みんなの感想</div>
+            ${reviewsHtml}
+            <button class="secondary-btn clickable" onclick="openReviewForm('${sake.id}')">感想を書く</button>
+        </div>
+    `;
+    document.getElementById('detailModal').classList.add('active');
+}
+
+function openReviewForm(sakeId) {
+    haptic();
+    document.getElementById('reviewSakeId').value = sakeId;
+    document.getElementById('reviewName').value = '';
+    document.getElementById('reviewComment').value = '';
+    setRating(5);
+    document.getElementById('reviewModal').classList.add('active');
+}
+
+function setRating(num) {
+    haptic();
+    document.getElementById('reviewRating').value = num;
+    document.querySelectorAll('.star-select').forEach((star, i) => {
+        star.classList.toggle('active', i < num);
+    });
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toastMessage');
+    t.textContent = msg;
+    t.classList.add('active');
+    setTimeout(() => t.classList.remove('active'), 2800);
+}
+
+async function submitReview() {
+    haptic();
+    const btn = document.getElementById('submitReviewBtn');
+    const sakeId = document.getElementById('reviewSakeId').value;
+    const nickname = document.getElementById('reviewName').value || 'ゲスト';
+    const comment = document.getElementById('reviewComment').value;
+    const rating = document.getElementById('reviewRating').value;
+
+    if (!comment) { alert('感想を入力してください。'); return; }
+
+    btn.textContent = '送信中…'; btn.disabled = true;
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append('sakeId', sakeId);
+        formData.append('nickname', nickname);
+        formData.append('rating', rating);
+        formData.append('comment', comment);
+
+        await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData });
+
+        reviewDatabase.push({ sakeId, nickname, rating, comment, date: new Date().toISOString() });
+
+        showToast('感想を受け付けました。ありがとうございます。');
+        closeModal('reviewModal');
+        showDetail(sakeId);
+    } catch (e) {
+        alert('送信に失敗しました。通信環境をご確認ください。');
+    } finally {
+        btn.textContent = '送信する'; btn.disabled = false;
+    }
+}
+</script>
+</body>
+</html>
