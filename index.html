@@ -397,15 +397,51 @@ function selectOption(index) {
 }
 
 function showResult() {
-    const scored = sakeDatabase.map(sake => {
+    // 1) 全銘柄にマッチ点数をつける
+    let scored = sakeDatabase.map(sake => {
         let matchScore = 0;
-        if (sake.scores) Object.keys(userScores).forEach(k => { if(sake.scores[k]) matchScore += userScores[k] * sake.scores[k]; });
+        if (sake.scores && typeof sake.scores === 'object') {
+            Object.keys(userScores).forEach(key => {
+                const s = Number(sake.scores[key] || 0);
+                const u = Number(userScores[key] || 0);
+                matchScore += u * s;
+            });
+        }
+        // 近い点数をバラけさせるためのごく小さなランダム
+        matchScore += Math.random() * 1.5;
         return { ...sake, matchScore };
-    }).sort((a, b) => b.matchScore - a.matchScore);
+    });
 
-    const top = scored[0];
-    if (!top) { document.getElementById('resultContent').innerHTML = '<p class="empty-msg">診断できる銘柄がありません</p>'; showScreen('resultScreen'); return; }
+    // 2) 高い順に並べる
+    scored.sort((a, b) => b.matchScore - a.matchScore);
 
+    // 3) 上位を取得（最大3件）
+    const topList = scored.slice(0, Math.min(3, scored.length));
+
+    if (!topList.length) {
+        document.getElementById('resultContent').innerHTML =
+            '<p class="empty-msg">診断できる銘柄がありません</p>';
+        showScreen('resultScreen');
+        return;
+    }
+
+    const top = topList[0];
+    const others = topList.slice(1);
+
+    // 4) 2位・3位カード
+    const othersHtml = others.map((sake, i) => `
+        <div class="recommend-card clickable" onclick="showDetail('${sake.id}')" style="margin-top:10px;">
+            <div class="rec-header">
+                <div>
+                    <div class="rec-name">${i + 2}位　${sake.name}</div>
+                    <div class="rec-type">${sake.brewery || ''}</div>
+                </div>
+            </div>
+            <div class="rec-price">${sake.price || ''}</div>
+        </div>
+    `).join('');
+
+    // 5) 結果画面
     document.getElementById('resultContent').innerHTML = `
         <div class="result-card">
             <div class="result-rank">あなたへのおすすめ</div>
@@ -415,6 +451,14 @@ function showResult() {
             <div class="result-price">${top.price || ''}</div>
             <button class="primary-btn clickable" onclick="showDetail('${top.id}')">詳細・感想を見る</button>
         </div>
+
+        ${others.length ? `
+            <div style="text-align:center; color:#c4a86e; letter-spacing:0.2em; font-size:12px; margin:18px 0 8px;">
+                こちらもおすすめ
+            </div>
+            ${othersHtml}
+        ` : ''}
+
         <button class="secondary-btn clickable" onclick="startDiagnosis()">もう一度診断する</button>
         <button class="secondary-btn clickable" onclick="goToStart()">メニューに戻る</button>
     `;
