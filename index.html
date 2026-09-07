@@ -325,7 +325,14 @@ async function loadData() {
     try {
         const response = await fetch(GAS_URL);
         const data = await response.json();
-        sakeDatabase = data.sakes || [];
+
+        // 売り切れ以外だけ使う
+        const allSakes = data.sakes || [];
+        sakeDatabase = allSakes.filter(function(sake) {
+            // isSoldOut が true のものは除外
+            return !(sake.isSoldOut === true || String(sake.isSoldOut).toUpperCase() === 'TRUE');
+        });
+
         reviewDatabase = data.reviews || [];
         document.getElementById('syncStatus').textContent = 'データ読込完了';
         document.getElementById('syncStatus').style.color = '#7a9a6a';
